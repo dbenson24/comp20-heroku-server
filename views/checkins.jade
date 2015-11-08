@@ -4,5 +4,5 @@ block content
   h1= title
   ul#checkins
     each checkin in checkins
-      li #{checkin.login} checked in at #{checkin.lat}, #{checkin.lng} on #{checkin.created_at} and wrote "#{checkin.message}"
+      li #{checkin.login} checked in at #{checkin.lat}, #{checkin.lng} on #{checkin.created_at.toLocaleString('en-US', {timeZone:"America/New_York"})} and wrote "#{checkin.message}"
   
