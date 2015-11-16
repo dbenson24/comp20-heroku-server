@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+var logins = require("../logins");
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://derek:derek@ds049084.mongolab.com:49084/comp20-dbenson');
 var db = mongoose.connection;
@@ -9,10 +10,7 @@ db.once('open', function(callback) {
 });
 
 var checkinSchema = mongoose.Schema({
-    login: {
-        type: String,
-        unique: true
-    },
+    login: String,
     lat: Number,
     lng: Number,
     message: String,
@@ -32,28 +30,57 @@ var Checkin = mongoose.model('Checkin', checkinSchema);
 // callback takes the err and checkins parameters
 var getCheckins = function(callback) {
     Checkin.
-    find({}).
-    where('created_at').gt(new Date(0)).
-    sort('-created_at').
+    aggregate([{
+        "$sort": {
+            created_at: -1
+        }
+    }, {
+        "$group": {
+            _id: "$login",
+            data: {
+                $first: "$$ROOT"
+            }
+        }
+    }]).
+    project({
+        _id: "$data._id",
+        lat: "$data.lat",
+        lng: "$data.lng",
+        login: "$data.login",
+        message: "$data.message",
+        created_at: "$data.created_at"
+    }).
+    match({
+        created_at: {
+            $gt: new Date(0)
+        }
+    }).
+    sort({
+        created_at: -1
+    }).
     exec(callback);
 }
 
-
-/* GET users listing. */
+/* GET checkins */
 router.get('/', function(req, res, next) {
     getCheckins(function(err, checkins) {
+        console.log(checkins);
         if (err) {
-            res.render('checkins', {title: "Checkins"});
+            res.render('checkins', {
+                title: "Checkins"
+            });
         }
         else {
-            res.render('checkins', {title: "Checkins", checkins: checkins});
+            res.render('checkins', {
+                title: "Checkins",
+                checkins: checkins
+            });
         }
     });
 });
 
 /* Used to populate the Mongodb for the first time */
 router.get('/populate', function(req, res, next) {
-    var logins = ['mchow', 'kaytea', 'CindyLytle', 'BenHarris', 'JeremyMaletic', 'LeeMiller', 'EricDapper', 'RichRumfelt', 'VanAmmerman', 'VicJohnson', 'ErinHolleman', 'PatFitzgerald', 'CheriVasquez', 'HarleyRhoden', 'JanetGage', 'HarleyConnell', 'GlendaMaletic', 'JeffSoulen', 'MarkHair', 'RichardDrake', 'CalvinStruthers', 'LeslieDapper', 'JefflynGage', 'PaulRamsey', 'BobPicky', 'RonConnelly', 'FrancieCarmody', 'ColleenSayers', 'TomDapper', 'MatthewKerr', 'RichBiggerstaff', 'MarkHarris', 'JerryRumfelt', 'JoshWright', 'LindyContreras', 'CameronGregory', 'MarkStruthers', 'TravisJohnson', 'RobertHeller', 'CalvinMoseley', 'HawkVasquez', 'LayneDapper', 'HarleyIsdale', 'GaylaSoulen', 'MatthewRichards', 'RoyDuke', 'GaylaRodriquez', 'FrancieGeraghty', 'LisaLytle', 'ErinHair', 'CalvinGraham', 'VanRhoden', 'KeithRumfelt', 'GlendaSmith', 'KathrynJohnson', 'FredVandeVorde', 'SheriMcKelvey', 'RoyMiller', 'PatIsdale', 'JoseRodriquez', 'KelleyRumfelt', 'JanetKinsey', 'RonCampbell', 'BenKerr', 'RobDennison', 'BobOwens', 'CherylLytle', 'LisaSoulen', 'TravisDuke', 'CindyGregory', 'JoyceVandeVorde', 'MatthewScholl', 'RobJohnson', 'EricHawthorn', 'CameronRodriquez', 'JoshRamsey', 'CalvinDuke', 'SheriHeller', 'LeaAmmerman', 'LayneVasquez', 'IMConnell', 'BenHauenstein', 'ColleenKerr', 'HawkRichards', 'LeaIsdale', 'RickSoulen', 'RoyMcFatter', 'KyleContreras', 'MaryHeller', 'KathrynFitzgerald', 'JanetRiedel', 'PatHawthorn', 'KeithHauenstein', 'BenRichards', 'RickVasquez', 'KelleyAmmerman', 'EvanConnelly', 'KendallRumfelt', 'TravisIsdale', 'RobContreras', 'JavierRussell', 'ColleenCampbell', 'JeremyConnelly', 'BenKinsey', 'JanetScholl', 'PaulaLewis', 'LeslieMcFatter', 'MatthewMcAda', 'LeeMuilman', 'KyleMoseley', 'JeffRhoden', 'AnitaHolleman', 'JefflynMcKelvey', 'BobContreras', 'RobFitzgerald', 'BenJohnson'];
     for (var i = 0; i < logins.length; i++) {
         var checkin = new Checkin({
             login: logins[i],
@@ -78,34 +105,28 @@ router.post('/', function(req, res, next) {
     var error = {
         "error": "Whoops, something is wrong with your data!"
     };
-    console.log("query", req.query);
     if (!req.query.login || !req.query.lat || !req.query.lng || !req.query.message) {
         return res.send(error);
     }
-    var checkin = {
+    var checkin = new Checkin({
         login: req.query.login,
         lat: req.query.lat,
         lng: req.query.lng,
-        message: req.query.message,
-        created_at: new Date()
-    };
-    var query = {
-        login: req.query.login
-    };
-    Checkin.findOneAndUpdate(query, checkin, {}, function(err, doc) {
-        if (err || doc === null) {
-            res.send(error);
-        }
-        else {
-            getCheckins(function(err, checkins) {
-                if (err) {
-                    res.send(err);
-                }
-                else {
-                    res.send(checkins);
-                }
-            });
-        }
+        message: req.query.message
+    });
+    if (logins.indexOf(checkin.login) === -1) {
+        return res.send(error);
+    }
+    var checkinPromise = checkin.save().then(function() {
+        getCheckins(function(err, checkins) {
+            console.log(checkins);
+            if (err) {
+                res.send(err);
+            }
+            else {
+                res.send(checkins);
+            }
+        })
     });
 });
 
