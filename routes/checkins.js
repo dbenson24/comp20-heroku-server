@@ -83,14 +83,14 @@ router.post('/sendLocation', function(req, res, next) {
     var error = {
         "error": "Whoops, something is wrong with your data!"
     };
-    if (!req.query.login || !req.query.lat || !req.query.lng || !req.query.message) {
+    if (!req.body.login || !req.body.lat || !req.body.lng || !req.body.message) {
         return res.send(error);
     }
     var checkin = new Checkin({
-        login: req.query.login,
-        lat: req.query.lat,
-        lng: req.query.lng,
-        message: req.query.message
+        login: req.body.login,
+        lat: req.body.lat,
+        lng: req.body.lng,
+        message: req.body.message
     });
     if (logins.indexOf(checkin.login) === -1) {
         return res.send(error);
