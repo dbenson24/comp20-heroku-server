@@ -6,8 +6,13 @@ mongoose.connect('mongodb://derek:derek@ds049084.mongolab.com:49084/comp20-dbens
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function(callback) {
-    // yay!
 });
+
+/**
+ * @callback checkinsCallBack
+ * @param {object} err
+ * @param {object[]} checkins
+ */
 
 var checkinSchema = mongoose.Schema({
     login: String,
@@ -26,8 +31,10 @@ var checkinSchema = mongoose.Schema({
 
 var Checkin = mongoose.model('Checkin', checkinSchema);
 
-
-// callback takes the err and checkins parameters
+/**
+ * Gets all of the checkins and executes the callback with them
+ * @param {checkinsCallBack} callback
+ */
 var getCheckins = function(callback) {
     Checkin.
     aggregate([{
