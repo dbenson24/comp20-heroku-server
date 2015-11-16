@@ -50,11 +50,6 @@ var getCheckins = function(callback) {
         message: "$data.message",
         created_at: "$data.created_at"
     }).
-    match({
-        created_at: {
-            $gt: new Date(0)
-        }
-    }).
     sort({
         created_at: -1
     }).
@@ -63,8 +58,10 @@ var getCheckins = function(callback) {
 
 /* GET checkins */
 router.get('/', function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
     getCheckins(function(err, checkins) {
-        console.log(checkins);
         if (err) {
             res.render('checkins', {
                 title: "Checkins"
@@ -79,29 +76,10 @@ router.get('/', function(req, res, next) {
     });
 });
 
-/* Used to populate the Mongodb for the first time */
-router.get('/populate', function(req, res, next) {
-    for (var i = 0; i < logins.length; i++) {
-        var checkin = new Checkin({
-            login: logins[i],
-            lat: 0,
-            lng: 0,
-            message: "",
-            created_at: new Date(0)
-        });
-        checkin.save();
-    }
-    getCheckins(function(err, checkins) {
-        if (err) {
-            res.send(err);
-        }
-        else {
-            res.send(checkins);
-        }
-    });
-});
-
-router.post('/', function(req, res, next) {
+router.post('/sendLocation', function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
     var error = {
         "error": "Whoops, something is wrong with your data!"
     };
@@ -117,7 +95,7 @@ router.post('/', function(req, res, next) {
     if (logins.indexOf(checkin.login) === -1) {
         return res.send(error);
     }
-    var checkinPromise = checkin.save().then(function() {
+    checkin.save().then(function() {
         getCheckins(function(err, checkins) {
             console.log(checkins);
             if (err) {
@@ -130,4 +108,19 @@ router.post('/', function(req, res, next) {
     });
 });
 
+
+router.get('/latest.json', function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    getCheckins(function(err, checkins) {
+        console.log(checkins);
+        if (err) {
+            res.send(err);
+        }
+        else {
+            res.send(checkins);
+        }
+    });
+})
 module.exports = router;
