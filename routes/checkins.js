@@ -11,14 +11,38 @@ MongoClient.connect(url, function(err, database) {
     db = database;
 });
 
+var reconnect = function(callback) {
+    MongoClient.connect(url, function(err, database) {
+        if (err) {
+            console.warn(err);
+        }
+        db = database;
+        callback();
+    });
+}
+
 var insertCheckin = function(checkin, callback) {
-    db.collection('checkins').insertOne(checkin, callback);
+    if (db) {
+        db.collection('checkins').insertOne(checkin, callback);
+    }
+    else {
+        reconnect(function() {
+            insertCheckin(checkin, callback);
+        });
+    }
 };
 
 var getCheckins = function(query, callback) {
-    db.collection('checkins').find(query).sort({
-        created_at: -1
-    }).toArray(callback);
+    if (db) {
+        db.collection('checkins').find(query).sort({
+            created_at: -1
+        }).toArray(callback);
+    }
+    else {
+        reconnect(function() {
+            getCheckins(query, callback);
+        });
+    }
 }
 
 var error = {
