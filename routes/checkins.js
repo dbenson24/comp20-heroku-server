@@ -8,6 +8,11 @@ db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function(callback) {
 });
 
+var error = {
+    "error": "Whoops, something is wrong with your data!"
+};
+
+
 /**
  * @callback checkinsCallBack
  * @param {object} err
@@ -68,7 +73,7 @@ router.get('/', function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
-    getCheckins(function(err, checkins) {
+    Checkin.find({}).sort({created_at: -1}).exec(function(err, checkins) {
         if (err) {
             res.render('checkins', {
                 title: "Checkins"
@@ -87,23 +92,20 @@ router.post('/sendLocation', function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
-    var error = {
-        "error": "Whoops, something is wrong with your data!"
-    };
     if (!req.body.login || !req.body.lat || !req.body.lng || !req.body.message) {
         return res.send(error);
     }
-    var checkin = new Checkin({
+    var newCheckin = new Checkin({
         login: req.body.login,
         lat: req.body.lat,
         lng: req.body.lng,
         message: req.body.message
     });
-    if (logins.indexOf(checkin.login) === -1) {
+    if (logins.indexOf(newCheckin.login) === -1) {
         return res.send(error);
     }
-    checkin.save().then(function() {
-        getCheckins(function(err, checkins) {
+    newCheckin.save().then(function() {
+        Checkin.find({}).sort({created_at: -1}).exec(function(err, checkins) {
             console.log(checkins);
             if (err) {
                 res.send(err);
@@ -120,7 +122,10 @@ router.get('/latest.json', function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
-    getCheckins(function(err, checkins) {
+    if(!req.query.login) {
+        req.query.login = "";
+    }
+    Checkin.find({login: req.query.login}).sort({created_at: -1}).limit(1).exec(function(err, checkins) {
         console.log(checkins);
         if (err) {
             res.send(err);
