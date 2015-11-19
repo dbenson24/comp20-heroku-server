@@ -5,8 +5,7 @@ var mongoose = require('mongoose');
 mongoose.connect('mongodb://derek:derek@ds049084.mongolab.com:49084/comp20-dbenson');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function(callback) {
-});
+db.once('open', function(callback) {});
 
 var error = {
     "error": "Whoops, something is wrong with your data!"
@@ -73,7 +72,9 @@ router.get('/', function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
-    Checkin.find({}).sort({created_at: -1}).exec(function(err, checkins) {
+    Checkin.find({}).sort({
+        created_at: -1
+    }).exec(function(err, checkins) {
         if (err) {
             res.render('checkins', {
                 title: "Checkins"
@@ -105,8 +106,9 @@ router.post('/sendLocation', function(req, res, next) {
         return res.send(error);
     }
     newCheckin.save().then(function() {
-        Checkin.find({}).sort({created_at: -1}).exec(function(err, checkins) {
-            console.log(checkins);
+        Checkin.find({}).sort({
+            created_at: -1
+        }).exec(function(err, checkins) {
             if (err) {
                 res.send(err);
             }
@@ -122,16 +124,24 @@ router.get('/latest.json', function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
-    if(!req.query.login) {
+    if (!req.query.login) {
         req.query.login = "";
     }
-    Checkin.find({login: req.query.login}).sort({created_at: -1}).limit(1).exec(function(err, checkins) {
-        console.log(checkins);
+    Checkin.find({
+        login: req.query.login
+    }).sort({
+        created_at: -1
+    }).limit(1).exec(function(err, checkins) {
         if (err) {
             res.send(err);
         }
         else {
-            res.send(checkins);
+            if (checkins.length === 0) {
+                res.send({});
+            }
+            else {
+                res.send(checkins[0]);
+            }
         }
     });
 })
